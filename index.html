@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Fiskeodds</title>
+  <meta name="description" content="Daglig odds-oversigt over hvilke fisk der har de bedste forhold omkring København." />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0b1f2a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fiskeodds" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">🎣</span>
+      <div>
+        <h1>Fiskeodds</h1>
+        <p class="sub">København &amp; omegn</p>
+      </div>
+    </div>
+    <button id="refresh" class="refresh" title="Opdater vejr">
+      <span class="refresh-ico">⟳</span>
+    </button>
+  </header>
+
+  <main id="main">
+    <!-- Dagsvælger -->
+    <nav id="daystrip" class="daystrip" aria-label="Vælg dag"></nav>
+
+    <!-- Status / fejl -->
+    <div id="status" class="status"></div>
+
+    <!-- Lommeinfo -->
+    <section id="pocketbar" class="pocketbar" hidden></section>
+
+    <!-- Resultatliste -->
+    <section id="results" class="results"></section>
+
+    <!-- Forklaring -->
+    <details class="legend">
+      <summary>Sådan beregnes odds</summary>
+      <p>
+        Odds er et <strong>relativt indeks (0–100&nbsp;%)</strong> for hvor godt forholdene passer til hver art
+        i den valgte tidslomme – ikke en bogstavelig fangstsandsynlighed. Det kombinerer
+        <strong>sæson</strong> (måned), <strong>lokationstype</strong>, <strong>tidspunkt/lys</strong> (med vægt på prime skumringsvinduer) og
+        <strong>vejr</strong> (vind &amp; vindstød, på-/fralandsvind, lufttryk-trend, skydække, vandklarhed, nedbør, bølger, strøm og vandtemperatur).
+        Torden/skybrud nedsætter odds for alle arter.
+      </p>
+      <p class="muted">
+        Vejrdata: Open-Meteo (gratis). Havtemperatur er målt; <strong>søtemperatur er estimeret</strong>
+        (mærket "est." / "~") ud fra 31 dages lufttemperatur-historik, da der ikke findes en gratis
+        sø-temperaturkilde. Artsviden: lystfisk.dk + almindelig DK-erfaring.
+      </p>
+    </details>
+  </main>
+
+  <footer class="foot">
+    <span id="updated" class="muted"></span>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
