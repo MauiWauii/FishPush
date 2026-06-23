@@ -105,6 +105,24 @@ async function refresh(force = false) {
   }
 }
 
+// Hård opdatering (⟳-knappen): ryd al cache + tjek for ny version + genindlæs siden.
+// Virker som escape-knap selv hvis enheden hænger på en gammel cachet version.
+async function hardRefresh() {
+  el.refresh.classList.add("spinning");
+  setStatus("Opdaterer app …");
+  try {
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+    if (navigator.serviceWorker) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) { try { await reg.update(); } catch (e) { /* ignorér */ } }
+    }
+  } catch (e) { /* ignorér */ }
+  location.reload();
+}
+
 function setStatus(msg, isError = false) {
   el.status.textContent = msg;
   el.status.className = "status" + (isError ? " error" : "");
@@ -309,11 +327,17 @@ function show3D(box, url) {
   mv.addEventListener("error", () => { mv.remove(); if (svg) svg.style.display = ""; attachTilt(box); });
   mv.addEventListener("load", () => {
     if (svg) svg.style.display = "none";
-    try {
-      const o = mv.getCameraOrbit();                                  // auto-afstand efter framing
-      mv.cameraOrbit = `${o.theta}rad ${o.phi}rad ${o.radius / 1.2}m`; // 120% zoom (20% tættere på)
-      mv.jumpCameraToGoal();
-    } catch (e) { /* ignorér */ }
+    // Start altid med 120% zoom (20% tættere på end auto-framing).
+    const zoom = () => {
+      try {
+        const o = mv.getCameraOrbit && mv.getCameraOrbit();
+        if (o && o.radius) {
+          mv.cameraOrbit = `${o.theta}rad ${o.phi}rad ${o.radius / 1.2}m`;
+          mv.jumpCameraToGoal();
+        }
+      } catch (e) { /* ignorér */ }
+    };
+    requestAnimationFrame(() => requestAnimationFrame(zoom)); // vent til framing er klar
   });
   box.insertBefore(mv, box.querySelector(".visual-hint"));
 }
@@ -350,7 +374,7 @@ function renderUpdated() {
 
 // ---------- init ----------
 function init() {
-  el.refresh.addEventListener("click", () => refresh(true));
+  el.refresh.addEventListener("click", hardRefresh);
 
   // Vis cache med det samme hvis muligt
   const cached = loadCache();
