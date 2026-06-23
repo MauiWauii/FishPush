@@ -1,7 +1,7 @@
 // sw.js – service worker for offline-brug.
 // App-skallen caches (cache-first). Vejr-API'et hentes network-first med cache-fallback.
 
-const CACHE = "fiskeodds-v7";
+const CACHE = "fiskeodds-v8";
 const SHELL = [
   "./",
   "./index.html",
@@ -63,8 +63,17 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // App-skal: cache-first
+  // App-skal (HTML/JS/CSS/ikoner): NETWORK-FIRST.
+  // Online -> altid nyeste version. Offline -> fald tilbage til cache.
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
+    fetch(e.request)
+      .then((res) => {
+        if (e.request.method === "GET" && res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(e.request))
   );
 });

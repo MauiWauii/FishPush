@@ -2,7 +2,7 @@
 
 import { LOCATIONS, FORECAST_DAYS } from "./config.js";
 import { fetchAllWeather } from "./weather.js";
-import { scoreUpcoming, ugedagNavn } from "./scoring.js";
+import { scoreUpcoming, ugedagNavn, toDayKey } from "./scoring.js";
 import { grejFor } from "./grej.js";
 import { fishSVG } from "./fishart.js";
 
@@ -243,7 +243,16 @@ function fishCard(r, day) {
 
   card.querySelector(".fish-head").addEventListener("click", () => {
     const willOpen = !card.classList.contains("open");
-    card.classList.toggle("open");
+    const beforeTop = card.getBoundingClientRect().top; // position før layout-ændring
+
+    // Accordion: luk alle andre åbne kort (kun ét åbent ad gangen).
+    el.results.querySelectorAll(".fish.open").forEach((c) => { if (c !== card) c.classList.remove("open"); });
+    card.classList.toggle("open", willOpen);
+
+    // Hold det klikkede kort visuelt på plads, så siden ikke hopper op/ned.
+    const afterTop = card.getBoundingClientRect().top;
+    if (afterTop !== beforeTop) window.scrollBy(0, afterTop - beforeTop);
+
     if (willOpen) maybeLoad3D(card.querySelector(".fish-visual"));
   });
   return card;
@@ -291,7 +300,7 @@ function show3D(box, url) {
   mv.setAttribute("interaction-prompt", "none");
   mv.setAttribute("shadow-intensity", "0.9");
   mv.setAttribute("exposure", "1");
-  mv.setAttribute("touch-action", "pan-y");
+  mv.setAttribute("touch-action", "none"); // tillad rotation i ALLE retninger (også op/ned)
   const svg = box.querySelector(".fishart");
   mv.addEventListener("error", () => { mv.remove(); if (svg) svg.style.display = ""; attachTilt(box); });
   if (svg) svg.style.display = "none";
@@ -340,12 +349,35 @@ function init() {
     recompute();
     render();
   }
-  // Hent altid frisk
+  // Hent altid frisk ved start
   refresh();
 
-  // Registrér service worker (PWA/offline)
+  // Hent friskt igen når appen vender tilbage i forgrunden (iOS genindlæser ikke altid),
+  // hvis data er ældre end 15 min eller dagen er skiftet. Så "at åbne appen" giver friske tal.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    const age = Date.now() - (state.hentet || 0);
+    const dayChanged = state.days[0] && state.days[0].dayKey !== toDayKey(tomorrow());
+    if (age > 15 * 60 * 1000 || dayChanged) refresh();
+  });
+
+  // Hent friskt igen når forbindelsen vender tilbage.
+  window.addEventListener("online", () => refresh());
+
+  // Registrér service worker (PWA/offline) + auto-opdatering.
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+    navigator.serviceWorker.register("./sw.js").then((reg) => {
+      // Tjek for ny version ved hver app-start.
+      reg.update().catch(() => {});
+    }).catch(() => {});
+
+    // Når en ny service worker tager over, genindlæs én gang så nyeste kode vises.
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
   }
 }
 
