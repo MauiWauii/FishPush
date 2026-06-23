@@ -1,7 +1,7 @@
 // sw.js – service worker for offline-brug.
 // App-skallen caches (cache-first). Vejr-API'et hentes network-first med cache-fallback.
 
-const CACHE = "fiskeodds-v3";
+const CACHE = "fiskeodds-v4";
 const SHELL = [
   "./",
   "./index.html",

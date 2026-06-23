@@ -91,7 +91,8 @@ export const SPECIES = [
     navn: "Torsk",
     emoji: "🐟",
     farve: "#c9a36b",
-    monthWeight: { 1:0.85, 2:0.8, 3:0.7, 4:0.4, 5:0.2, 6:0.1, 7:0.05, 8:0.05, 9:0.25, 10:0.6, 11:0.9, 12:1.0 },
+    // Standfisk: lavsæson-gulv hævet en smule – vandtemp [2,12] bærer nu sommer-undertrykkelsen (undgår dobbelt-tælling)
+    monthWeight: { 1:0.85, 2:0.8, 3:0.7, 4:0.45, 5:0.28, 6:0.18, 7:0.12, 8:0.12, 9:0.35, 10:0.65, 11:0.9, 12:1.0 },
     typeScore: { mole: 1.0, kyst: 0.7 },
     timePref: "lowlight",
     cloudPref: "high",
@@ -114,7 +115,8 @@ export const SPECIES = [
     navn: "Havørred",
     emoji: "🐟",
     farve: "#e0e6ee",
-    monthWeight: { 1:0.7, 2:0.75, 3:0.95, 4:1.0, 5:0.85, 6:0.55, 7:0.4, 8:0.4, 9:0.65, 10:0.85, 11:0.85, 12:0.75 },
+    // Standfisk: sommer-gulv hævet – vandtemp [3,14] fanger varmt-vand-undertrykkelsen separat
+    monthWeight: { 1:0.72, 2:0.78, 3:0.95, 4:1.0, 5:0.85, 6:0.6, 7:0.5, 8:0.5, 9:0.7, 10:0.85, 11:0.85, 12:0.78 },
     typeScore: { kyst: 1.0, mole: 0.8, brak: 0.85 },
     timePref: "lowlight",
     cloudPref: "any",
@@ -181,7 +183,8 @@ export const SPECIES = [
     navn: "Gedde",
     emoji: "🐟",
     farve: "#5aa0a8",
-    monthWeight: { 1:0.45, 2:0.5, 3:0.8, 4:0.9, 5:0.7, 6:0.5, 7:0.4, 8:0.45, 9:0.8, 10:1.0, 11:0.9, 12:0.55 },
+    // Standfisk: sommer-gulv hævet let – varmt vand straffes via vandtemp; men sommer-pike er reelt sløve, så kun modest
+    monthWeight: { 1:0.5, 2:0.55, 3:0.8, 4:0.9, 5:0.7, 6:0.55, 7:0.5, 8:0.55, 9:0.8, 10:1.0, 11:0.9, 12:0.6 },
     typeScore: { sø: 1.0, brak: 0.95 },
     timePref: "lowlight",
     cloudPref: "any",
