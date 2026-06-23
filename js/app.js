@@ -6,7 +6,7 @@ import { scoreUpcoming, ugedagNavn, toDayKey } from "./scoring.js";
 import { grejFor } from "./grej.js";
 import { fishSVG } from "./fishart.js";
 
-const APP_VERSION = "v9"; // synlig i bunden – bump ved hver ændring for at validere opdateringer
+const APP_VERSION = "v12"; // synlig i bunden – bump ved hver ændring for at validere opdateringer
 const CACHE_KEY = "fiskeodds:weather:v1";
 const CACHE_TTL = 1000 * 60 * 60 * 3; // 3 timer
 
@@ -325,10 +325,14 @@ function show3D(box, url) {
   mv.setAttribute("shadow-intensity", "0.9");
   mv.setAttribute("exposure", "1");
   mv.setAttribute("touch-action", "none"); // tillad rotation i ALLE retninger (også op/ned)
-  mv.setAttribute("camera-orbit", "0deg 75deg 83%"); // kameraet 17% tættere på = modellen ~20% større (120% zoom)
+  mv.setAttribute("camera-orbit", "0deg 75deg 66%");   // zoom ind (radius 66% af framing ≈ 50% større)
+  mv.setAttribute("min-camera-orbit", "auto auto 0%"); // fjern lås så vi må zoome tættere end auto
   const svg = box.querySelector(".fishart");
   mv.addEventListener("error", () => { mv.remove(); if (svg) svg.style.display = ""; attachTilt(box); });
-  mv.addEventListener("load", () => { if (svg) svg.style.display = "none"; });
+  mv.addEventListener("load", () => {
+    if (svg) svg.style.display = "none";
+    if (mv.jumpCameraToGoal) mv.jumpCameraToGoal(); // snap til den indstillede afstand
+  });
   box.insertBefore(mv, box.querySelector(".visual-hint"));
 }
 
