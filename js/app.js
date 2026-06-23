@@ -3,6 +3,8 @@
 import { LOCATIONS, FORECAST_DAYS } from "./config.js";
 import { fetchAllWeather } from "./weather.js";
 import { scoreUpcoming, ugedagNavn } from "./scoring.js";
+import { grejFor } from "./grej.js";
+import { fishSVG } from "./fishart.js";
 
 const CACHE_KEY = "fiskeodds:weather:v1";
 const CACHE_TTL = 1000 * 60 * 60 * 3; // 3 timer
@@ -155,12 +157,39 @@ function renderDay() {
     el.results.innerHTML = `<div class="empty">Ingen data for denne dag.</div>`;
     return;
   }
-  day.perSpecies.forEach((r) => el.results.appendChild(fishCard(r)));
+  day.perSpecies.forEach((r) => el.results.appendChild(fishCard(r, day)));
 }
 
-function fishCard(r) {
+function fishCard(r, day) {
   const card = document.createElement("div");
   card.className = "fish";
+
+  // Top 3 pladser for arten (på den valgte dag)
+  const spots = day.all
+    .filter((x) => x.speciesId === r.speciesId)
+    .sort((a, b) => b.odds - a.odds)
+    .slice(0, 3);
+  const spotsHtml = spots
+    .map((s) => `<div class="spot-row">
+        <span class="spot-name">📍 ${s.locationNavn}</span>
+        <span class="spot-bar"><span style="width:${s.odds}%;background:${oddsColor(s.odds)}"></span></span>
+        <span class="spot-odds" style="color:${oddsColor(s.odds)}">${s.odds}%</span>
+      </div>`)
+    .join("");
+
+  // Top 3 grej med successrate
+  const grejHtml = grejFor(r.speciesId)
+    .map((g) => `<div class="grej-row">
+        <div class="grej-top">
+          <span class="grej-metode">${g.metode}</span>
+          <span class="grej-rate">${g.rate}%</span>
+        </div>
+        <div class="grej-bar"><span style="width:${g.rate}%"></span></div>
+        <div class="grej-tip">${g.tip}</div>
+      </div>`)
+    .join("");
+
+  const visual = `<div class="fish-visual" data-id="${r.speciesId}">${fishSVG(r.speciesId)}<div class="visual-hint">træk for at dreje</div></div>`;
 
   const subChips = Object.entries(r.subs)
     .filter(([, s]) => s.v !== null)
@@ -201,13 +230,96 @@ function fishCard(r) {
       <span class="chev">▶</span>
     </div>
     <div class="fish-detail">
+      ${visual}
+      <p class="detail-note">${r.note}</p>
+      <h4 class="sec-title">Bedste pladser</h4>
+      <div class="spots">${spotsHtml}</div>
+      <h4 class="sec-title">Bedste grej</h4>
+      <div class="grej">${grejHtml}</div>
+      <h4 class="sec-title">Forhold i lommen</h4>
       ${wx}
       <div class="subs">${subChips}</div>
-      <p class="detail-note">${r.note}</p>
     </div>`;
 
-  card.querySelector(".fish-head").addEventListener("click", () => card.classList.toggle("open"));
+  card.querySelector(".fish-head").addEventListener("click", () => {
+    const willOpen = !card.classList.contains("open");
+    card.classList.toggle("open");
+    if (willOpen) maybeLoad3D(card.querySelector(".fish-visual"));
+  });
   return card;
+}
+
+// 3D: prøv at hente models/<id>.glb. Findes den (og vi er online), vis fuld 360°-model.
+// Ellers fald tilbage til den animerede SVG-fisk med træk-for-at-vippe.
+async function maybeLoad3D(box) {
+  if (!box || box.dataset.tried) return;
+  box.dataset.tried = "1";
+  const url = `models/${box.dataset.id}.glb`;
+  if (!navigator.onLine) { attachTilt(box); return; }
+  try {
+    const head = await fetch(url, { method: "HEAD" });
+    if (!head.ok) throw new Error("no model");
+    await loadModelViewer();
+    show3D(box, url);
+  } catch {
+    attachTilt(box);
+  }
+}
+
+let mvPromise = null;
+function loadModelViewer() {
+  if (mvPromise) return mvPromise;
+  mvPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.type = "module";
+    s.src = "https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js";
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return mvPromise;
+}
+
+function show3D(box, url) {
+  const mv = document.createElement("model-viewer");
+  mv.className = "fish-3d";
+  mv.setAttribute("src", url);
+  mv.setAttribute("camera-controls", "");      // træk for at rotere 360°
+  mv.setAttribute("auto-rotate", "");
+  mv.setAttribute("auto-rotate-delay", "0");
+  mv.setAttribute("rotation-per-second", "26deg");
+  mv.setAttribute("interaction-prompt", "none");
+  mv.setAttribute("shadow-intensity", "0.9");
+  mv.setAttribute("exposure", "1");
+  mv.setAttribute("touch-action", "pan-y");
+  const svg = box.querySelector(".fishart");
+  mv.addEventListener("error", () => { mv.remove(); if (svg) svg.style.display = ""; attachTilt(box); });
+  if (svg) svg.style.display = "none";
+  box.insertBefore(mv, box.querySelector(".visual-hint"));
+}
+
+// Træk-for-at-vippe (pseudo-3D) på fiske-visualen.
+function attachTilt(box) {
+  if (!box || box.dataset.tilt) return;
+  box.dataset.tilt = "1";
+  const svg = box.querySelector(".fishart");
+  let dragging = false;
+  const set = (x, y) => { svg.style.transform = `perspective(700px) rotateY(${x}deg) rotateX(${y}deg)`; };
+  box.addEventListener("pointerdown", (e) => {
+    dragging = true; svg.style.transition = "none";
+    box.setPointerCapture(e.pointerId);
+  });
+  box.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const rect = box.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    set(px * 55, -py * 32);
+  });
+  const reset = () => { if (!dragging) return; dragging = false; svg.style.transition = "transform .45s ease"; svg.style.transform = ""; };
+  box.addEventListener("pointerup", reset);
+  box.addEventListener("pointercancel", reset);
+  box.addEventListener("pointerleave", reset);
 }
 
 function renderUpdated() {

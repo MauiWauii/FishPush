@@ -1,7 +1,7 @@
 // sw.js – service worker for offline-brug.
 // App-skallen caches (cache-first). Vejr-API'et hentes network-first med cache-fallback.
 
-const CACHE = "fiskeodds-v4";
+const CACHE = "fiskeodds-v7";
 const SHELL = [
   "./",
   "./index.html",
@@ -12,6 +12,8 @@ const SHELL = [
   "./js/species.js",
   "./js/weather.js",
   "./js/scoring.js",
+  "./js/grej.js",
+  "./js/fishart.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
 ];
@@ -41,6 +43,22 @@ self.addEventListener("fetch", (e) => {
           return res;
         })
         .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // 3D-modeller (.glb): cache efter første hentning, så de virker offline bagefter.
+  if (url.pathname.endsWith(".glb")) {
+    e.respondWith(
+      caches.match(e.request).then((cached) =>
+        cached || fetch(e.request).then((res) => {
+          if (e.request.method === "GET") {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(e.request, copy));
+          }
+          return res;
+        })
+      )
     );
     return;
   }
