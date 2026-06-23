@@ -6,6 +6,7 @@ import { scoreUpcoming, ugedagNavn, toDayKey } from "./scoring.js";
 import { grejFor } from "./grej.js";
 import { fishSVG } from "./fishart.js";
 
+const APP_VERSION = "v9"; // synlig i bunden – bump ved hver ændring for at validere opdateringer
 const CACHE_KEY = "fiskeodds:weather:v1";
 const CACHE_TTL = 1000 * 60 * 60 * 3; // 3 timer
 
@@ -16,6 +17,7 @@ const el = {
   pocketbar: document.getElementById("pocketbar"),
   results: document.getElementById("results"),
   updated: document.getElementById("updated"),
+  appver: document.getElementById("appver"),
 };
 
 let state = {
@@ -323,22 +325,10 @@ function show3D(box, url) {
   mv.setAttribute("shadow-intensity", "0.9");
   mv.setAttribute("exposure", "1");
   mv.setAttribute("touch-action", "none"); // tillad rotation i ALLE retninger (også op/ned)
+  mv.setAttribute("camera-orbit", "0deg 75deg 83%"); // kameraet 17% tættere på = modellen ~20% større (120% zoom)
   const svg = box.querySelector(".fishart");
   mv.addEventListener("error", () => { mv.remove(); if (svg) svg.style.display = ""; attachTilt(box); });
-  mv.addEventListener("load", () => {
-    if (svg) svg.style.display = "none";
-    // Start altid med 120% zoom (20% tættere på end auto-framing).
-    const zoom = () => {
-      try {
-        const o = mv.getCameraOrbit && mv.getCameraOrbit();
-        if (o && o.radius) {
-          mv.cameraOrbit = `${o.theta}rad ${o.phi}rad ${o.radius / 1.2}m`;
-          mv.jumpCameraToGoal();
-        }
-      } catch (e) { /* ignorér */ }
-    };
-    requestAnimationFrame(() => requestAnimationFrame(zoom)); // vent til framing er klar
-  });
+  mv.addEventListener("load", () => { if (svg) svg.style.display = "none"; });
   box.insertBefore(mv, box.querySelector(".visual-hint"));
 }
 
@@ -374,6 +364,7 @@ function renderUpdated() {
 
 // ---------- init ----------
 function init() {
+  if (el.appver) el.appver.textContent = "Fiskeodds " + APP_VERSION;
   el.refresh.addEventListener("click", hardRefresh);
 
   // Vis cache med det samme hvis muligt
