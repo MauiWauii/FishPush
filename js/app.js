@@ -236,9 +236,13 @@ function fishCard(r, day) {
       <div class="spots">${spotsHtml}</div>
       <h4 class="sec-title">Bedste grej</h4>
       <div class="grej">${grejHtml}</div>
-      <h4 class="sec-title">Forhold i lommen</h4>
-      ${wx}
-      <div class="subs">${subChips}</div>
+      <details class="wx-drop">
+        <summary>Forhold</summary>
+        <div class="wx-drop-body">
+          ${wx}
+          <div class="subs">${subChips}</div>
+        </div>
+      </details>
     </div>`;
 
   card.querySelector(".fish-head").addEventListener("click", () => {
@@ -303,7 +307,14 @@ function show3D(box, url) {
   mv.setAttribute("touch-action", "none"); // tillad rotation i ALLE retninger (også op/ned)
   const svg = box.querySelector(".fishart");
   mv.addEventListener("error", () => { mv.remove(); if (svg) svg.style.display = ""; attachTilt(box); });
-  if (svg) svg.style.display = "none";
+  mv.addEventListener("load", () => {
+    if (svg) svg.style.display = "none";
+    try {
+      const o = mv.getCameraOrbit();                                  // auto-afstand efter framing
+      mv.cameraOrbit = `${o.theta}rad ${o.phi}rad ${o.radius / 1.2}m`; // 120% zoom (20% tættere på)
+      mv.jumpCameraToGoal();
+    } catch (e) { /* ignorér */ }
+  });
   box.insertBefore(mv, box.querySelector(".visual-hint"));
 }
 

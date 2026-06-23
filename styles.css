@@ -233,6 +233,39 @@ main { padding: 16px; max-width: 720px; margin: 0 auto; }
   color: var(--muted); margin: 18px 0 8px;
 }
 
+/* "Forhold" som dropdown – tydelig knap-bjælke, kun tryk åbner den */
+.wx-drop { margin-top: 16px; }
+.wx-drop > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 12px 15px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 14px; font-weight: 700;
+  transition: background 0.15s ease;
+}
+.wx-drop > summary:active { background: var(--line); }
+.wx-drop[open] > summary { border-radius: 12px 12px 0 0; border-bottom-color: transparent; }
+.wx-drop > summary::-webkit-details-marker { display: none; }
+.wx-drop > summary::after {
+  content: "▸";
+  color: var(--accent);
+  font-size: 15px;
+  transition: transform 0.2s ease;
+}
+.wx-drop[open] > summary::after { transform: rotate(90deg); }
+.wx-drop-body {
+  padding: 12px 15px;
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+}
+
 /* Top 3 pladser */
 .spots { display: flex; flex-direction: column; gap: 7px; }
 .spot-row {
