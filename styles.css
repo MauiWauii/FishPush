@@ -224,6 +224,26 @@ main { padding: 16px; max-width: 720px; margin: 0 auto; }
   border-radius: 14px;
   --poster-color: transparent;
 }
+
+/* Mens 3D-modellen loader: reservér samme højde (intet hop) + vis spinner i stedet for stor SVG */
+.fish-visual--3d {
+  height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fish-visual--3d .fishart { display: none; }
+.fish-visual--3d:not(.model-loaded)::before {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 34px; height: 34px; margin: -17px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin3d 0.8s linear infinite;
+}
+@keyframes spin3d { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .fish-bob, .fish-tail { animation: none; }
 }

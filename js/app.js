@@ -5,8 +5,9 @@ import { fetchAllWeather } from "./weather.js";
 import { scoreUpcoming, ugedagNavn, toDayKey } from "./scoring.js";
 import { grejFor } from "./grej.js";
 import { fishSVG } from "./fishart.js";
+import { SPECIES } from "./species.js";
 
-const APP_VERSION = "v12"; // synlig i bunden – bump ved hver ændring for at validere opdateringer
+const APP_VERSION = "v13"; // synlig i bunden – bump ved hver ændring for at validere opdateringer
 const CACHE_KEY = "fiskeodds:weather:v1";
 const CACHE_TTL = 1000 * 60 * 60 * 3; // 3 timer
 
@@ -287,16 +288,34 @@ function fishCard(r, day) {
 async function maybeLoad3D(box) {
   if (!box || box.dataset.tried) return;
   box.dataset.tried = "1";
-  const url = `models/${box.dataset.id}.glb`;
+  const id = box.dataset.id;
   if (!navigator.onLine) { attachTilt(box); return; }
+
+  // Vent på opstarts-probe så vi VED om modellen findes (undgår at vise stor SVG forgæves).
+  if (modelProbe) { try { await modelProbe; } catch { /* ignorér */ } }
+  let has = MODELS3D.has(id);
+  if (!has && MODELS3D.size === 0) { // probe fejlede/ikke kørt -> bekræft direkte
+    try { const r = await fetch(`models/${id}.glb`, { method: "HEAD" }); has = r.ok; if (has) MODELS3D.add(id); } catch { /* ignorér */ }
+  }
+  if (!has) { attachTilt(box); return; } // ingen model -> SVG-fisk
+
+  box.classList.add("fish-visual--3d"); // reservér 210px + vis spinner med det samme (intet hop)
   try {
-    const head = await fetch(url, { method: "HEAD" });
-    if (!head.ok) throw new Error("no model");
     await loadModelViewer();
-    show3D(box, url);
+    show3D(box, `models/${id}.glb`);
   } catch {
+    box.classList.remove("fish-visual--3d");
     attachTilt(box);
   }
+}
+
+// Hvilke arter har en 3D-model (probes ved opstart, så vi ved det på forhånd).
+const MODELS3D = new Set();
+let modelProbe = null;
+function probeModels() {
+  modelProbe = Promise.all(SPECIES.map(async (s) => {
+    try { const r = await fetch(`models/${s.id}.glb`, { method: "HEAD" }); if (r.ok) MODELS3D.add(s.id); } catch { /* ignorér */ }
+  }));
 }
 
 let mvPromise = null;
@@ -327,10 +346,13 @@ function show3D(box, url) {
   mv.setAttribute("touch-action", "none"); // tillad rotation i ALLE retninger (også op/ned)
   mv.setAttribute("camera-orbit", "0deg 75deg 66%");   // zoom ind (radius 66% af framing ≈ 50% større)
   mv.setAttribute("min-camera-orbit", "auto auto 0%"); // fjern lås så vi må zoome tættere end auto
-  const svg = box.querySelector(".fishart");
-  mv.addEventListener("error", () => { mv.remove(); if (svg) svg.style.display = ""; attachTilt(box); });
+  mv.addEventListener("error", () => {
+    mv.remove();
+    box.classList.remove("fish-visual--3d", "model-loaded");
+    attachTilt(box);
+  });
   mv.addEventListener("load", () => {
-    if (svg) svg.style.display = "none";
+    box.classList.add("model-loaded"); // skjul spinner
     if (mv.jumpCameraToGoal) mv.jumpCameraToGoal(); // snap til den indstillede afstand
   });
   box.insertBefore(mv, box.querySelector(".visual-hint"));
@@ -370,6 +392,14 @@ function renderUpdated() {
 function init() {
   if (el.appver) el.appver.textContent = "Fiskeodds " + APP_VERSION;
   el.refresh.addEventListener("click", hardRefresh);
+
+  // Find hvilke arter har 3D-modeller, og forindlæs 3D-motoren i baggrunden (hurtigere åbning).
+  if (navigator.onLine) {
+    probeModels();
+    const preload = () => loadModelViewer().catch(() => {});
+    if (window.requestIdleCallback) requestIdleCallback(preload, { timeout: 3000 });
+    else setTimeout(preload, 1500);
+  }
 
   // Vis cache med det samme hvis muligt
   const cached = loadCache();
